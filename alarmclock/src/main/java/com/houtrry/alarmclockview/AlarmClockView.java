@@ -256,7 +256,7 @@ public class AlarmClockView extends View {
         float startArc = mClockPointHelper.getStartArc();
         float endArc = mClockPointHelper.getEndArc();
         Log.d(TAG, "drawSlider: startArc: " + startArc + ", endArc: " + endArc);
-        canvas.drawArc(mSlideArcRect, startArc, endArc, false, mSliderPaint);
+        canvas.drawArc(mSlideArcRect, startArc, endArc-startArc, false, mSliderPaint);
     }
 
 }

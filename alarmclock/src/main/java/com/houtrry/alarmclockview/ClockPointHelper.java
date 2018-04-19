@@ -114,6 +114,7 @@ public class ClockPointHelper {
         if (distance != radius) {
             amendX = (x - centerPoint.x) * radius / distance + centerPoint.x;
             amendY = (y - centerPoint.y) * radius / distance + centerPoint.y;
+            Log.d(TAG, "amendPoint: ("+x+", "+y+"), "+"("+amendX+", "+amendY+")");
         } else {
             amendX = x;
             amendY = y;
@@ -229,7 +230,7 @@ public class ClockPointHelper {
     }
 
     public boolean isInEndPointArea(float x, float y) {
-        float distance = calculateDistance(x, y, startPoint);
+        float distance = calculateDistance(x, y, endPoint);
         Log.d(TAG, "isInEndPointArea: distance: " + distance + ", maxPointAreaRadius: " + maxPointAreaRadius);
         return distance < maxPointAreaRadius;
     }
