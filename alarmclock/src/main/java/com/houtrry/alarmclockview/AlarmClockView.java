@@ -8,6 +8,8 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SweepGradient;
+import android.graphics.drawable.Drawable;
+import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -70,6 +72,22 @@ public class AlarmClockView extends View {
     private PointF mStartPointF = new PointF();
     private PointF mEndPointF = new PointF();
 
+    private Drawable mDayDrawable = null;
+    private Drawable mNightDrawable = null;
+
+    private float mDayDrawableWidth = 0;
+    private float mNightDrawableWidth = 0;
+    private float mDayDrawableHeight = 0;
+    private float mNightDrawableHeight = 0;
+    private float mDayDrawableBackgroundColor = Color.parseColor("#1E263D");
+    private float mNightDrawableBackgroundColor = Color.parseColor("#1E263D");
+
+    private ClockPointHelper mClockPointHelper = null;
+
+    private Paint mDayNightPointPaint = null;
+    private boolean mNeedHandleEvent = false;
+    private RectF mSlideArcRect = new RectF();
+
     public AlarmClockView(Context context) {
         this(context, null);
     }
@@ -86,7 +104,7 @@ public class AlarmClockView extends View {
     private void init(Context context, AttributeSet attrs) {
         initAttrs(context, attrs);
         initData();
-        initPaint(context);
+        initPaint();
     }
 
     private void initAttrs(Context context, AttributeSet attrs) {
@@ -95,13 +113,18 @@ public class AlarmClockView extends View {
 
     private void initData() {
         mPreDegree = 360f / mDialTexts.length;
+
+        mClockPointHelper = new ClockPointHelper();
+        mClockPointHelper.init().setStartTime(30)
+                .setEndTime(270)
+                .setRadius(mDialPlateRadius + mSliderWidth * 0.5f);
     }
 
-    private void initPaint(Context context) {
+    private void initPaint() {
         mSliderBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mSliderBackgroundPaint.setColor(mSliderBackgroundColor);
         mSliderBackgroundPaint.setStyle(Paint.Style.STROKE);
-        mSliderBackgroundPaint.setStrokeWidth(mSliderWidth+2);
+        mSliderBackgroundPaint.setStrokeWidth(mSliderWidth + 2);
 
         mDialPlateBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mDialPlateBackgroundPaint.setColor(mDialPlateBackgroundColor);
@@ -119,7 +142,10 @@ public class AlarmClockView extends View {
         mSliderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mSliderPaint.setStyle(Paint.Style.STROKE);
         mSliderPaint.setStrokeCap(Paint.Cap.ROUND);
-        mSliderPaint.setStrokeWidth(mSliderWidth+2);
+        mSliderPaint.setStrokeWidth(mSliderWidth + 2);
+
+        mDayNightPointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mDayNightPointPaint.setStyle(Paint.Style.FILL);
 
     }
 
@@ -135,11 +161,33 @@ public class AlarmClockView extends View {
         mHeight = h;
         mCenterPoint.set(mWidth * 0.5f, mHeight * 0.5f);
         mSliderPaint.setShader(new SweepGradient(mCenterPoint.x, mCenterPoint.y, mSliderColors, null));
+        mClockPointHelper.setCenterPoint(mCenterPoint);
+        mClockPointHelper.calculate(false, true, true);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return super.onTouchEvent(event);
+        float x = event.getX();
+        float y = event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN: {
+                mNeedHandleEvent = mClockPointHelper.isInPointArea(x, y);
+                Log.d(TAG, "onTouchEvent: x: "+x+", y: "+y+", ");
+                break;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                mClockPointHelper.updatePosition(x, y, mClockPointHelper.isInStartPointArea(x, y));
+                ViewCompat.postInvalidateOnAnimation(this);
+                break;
+            }
+            case MotionEvent.ACTION_UP: {
+
+                break;
+            }
+            default:
+                break;
+        }
+        return mNeedHandleEvent;
     }
 
     @Override
@@ -159,7 +207,7 @@ public class AlarmClockView extends View {
      */
     private void drawBackground(Canvas canvas) {
         canvas.drawCircle(mCenterPoint.x, mCenterPoint.y, mDialPlateRadius, mDialPlateBackgroundPaint);
-        canvas.drawCircle(mCenterPoint.x, mCenterPoint.y, mDialPlateRadius + mSliderWidth*0.5f, mSliderBackgroundPaint);
+        canvas.drawCircle(mCenterPoint.x, mCenterPoint.y, mDialPlateRadius + mSliderWidth * 0.5f, mSliderBackgroundPaint);
     }
 
     /**
@@ -189,44 +237,26 @@ public class AlarmClockView extends View {
 
             canvas.drawText(text, mCenterPoint.x - mDialTextPaint.measureText(text) * 0.5f, mCenterPoint.y - mDialPlateRadius + mDialLineMargin + mDialLineHeight + mDialTextMargin + mDialTextRect.height(), mDialTextPaint);
 
-            Log.d(TAG, "drawDialPlate: text : "+text+", x: "+(mCenterPoint.x - mDialTextPaint.measureText(text) * 0.5f)+", y: "+(mCenterPoint.y - mDialPlateRadius + mDialLineMargin + mDialLineHeight + mDialTextMargin + mDialTextRect.height()));
+            Log.d(TAG, "drawDialPlate: text : " + text + ", x: " + (mCenterPoint.x - mDialTextPaint.measureText(text) * 0.5f) + ", y: " + (mCenterPoint.y - mDialPlateRadius + mDialLineMargin + mDialLineHeight + mDialTextMargin + mDialTextRect.height()));
 
             canvas.rotate(mPreDegree, mCenterPoint.x, mCenterPoint.y);
         }
         canvas.restore();
     }
 
-    private RectF mSlideArcRect = new RectF();
-    /**     * 绘制可以滑动的部分
+    /**
+     * 绘制可以滑动的部分
      *
      * @param canvas
      */
     private void drawSlider(Canvas canvas) {
-        mSlideArcRect.set(mCenterPoint.x - mDialPlateRadius - mSliderWidth *0.5f, mCenterPoint.y - mDialPlateRadius - mSliderWidth *0.5f,
-                mCenterPoint.x + mDialPlateRadius + mSliderWidth *0.5f, mCenterPoint.y + mDialPlateRadius + mSliderWidth *0.5f);
-        canvas.drawArc(mSlideArcRect, 45, 275, false, mSliderPaint);
+        mSlideArcRect.set(mCenterPoint.x - mDialPlateRadius - mSliderWidth * 0.5f, mCenterPoint.y - mDialPlateRadius - mSliderWidth * 0.5f,
+                mCenterPoint.x + mDialPlateRadius + mSliderWidth * 0.5f, mCenterPoint.y + mDialPlateRadius + mSliderWidth * 0.5f);
+
+        float startArc = mClockPointHelper.getStartArc();
+        float endArc = mClockPointHelper.getEndArc();
+        Log.d(TAG, "drawSlider: startArc: " + startArc + ", endArc: " + endArc);
+        canvas.drawArc(mSlideArcRect, startArc, endArc, false, mSliderPaint);
     }
 
-
-    private class SliderPoint {
-        private float degree;
-
-        private PointF centerPointF;
-        private float radius;
-
-        private PointF currentPointF;
-
-
-        public SliderPoint() {
-        }
-
-        public SliderPoint(PointF centerPointF, float radius) {
-            this.centerPointF = centerPointF;
-            this.radius = radius;
-        }
-
-        public void calculateDegree() {
-
-        }
-    }
 }
