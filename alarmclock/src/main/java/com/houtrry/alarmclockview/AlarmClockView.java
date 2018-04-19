@@ -60,7 +60,8 @@ public class AlarmClockView extends View {
     private int mDialTextMargin = 6;
     private Paint mDialTextPaint = null;
 
-    private int[] mSliderColors = {Color.parseColor("#1AEBF7"), Color.parseColor("#F7F095")};
+    private int[] mSliderColors = {Color.parseColor("#1AEBF7"), Color.parseColor("#F7F095"), Color.parseColor("#1AEBF7")};
+    private float[] mSliderColorpositions = {0.0f, 0.5f, 1.0f};
     private Paint mSliderPaint = null;
 
     private int[] mDialTexts = {12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
@@ -116,7 +117,7 @@ public class AlarmClockView extends View {
 
         mClockPointHelper = new ClockPointHelper();
         mClockPointHelper.init().setStartTime(30)
-                .setEndTime(270)
+                .setEndTime(300)
                 .setRadius(mDialPlateRadius + mSliderWidth * 0.5f);
     }
 
@@ -160,28 +161,31 @@ public class AlarmClockView extends View {
         mWidth = w;
         mHeight = h;
         mCenterPoint.set(mWidth * 0.5f, mHeight * 0.5f);
-        mSliderPaint.setShader(new SweepGradient(mCenterPoint.x, mCenterPoint.y, mSliderColors, null));
+        mSliderPaint.setShader(new SweepGradient(mCenterPoint.x, mCenterPoint.y, mSliderColors, mSliderColorpositions));
         mClockPointHelper.setCenterPoint(mCenterPoint);
         mClockPointHelper.calculate(false, true, true);
     }
 
+    private boolean mInStartPointArea = false;
+    private boolean mInEndPointArea = false;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
         float y = event.getY();
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN: {
-                mNeedHandleEvent = mClockPointHelper.isInPointArea(x, y);
+                mInStartPointArea = mClockPointHelper.isInStartPointArea(x, y);
+                mInEndPointArea = mClockPointHelper.isInEndPointArea(x, y);
+                mNeedHandleEvent = mInStartPointArea || mInEndPointArea;
                 Log.d(TAG, "onTouchEvent: x: "+x+", y: "+y+", ");
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
-                mClockPointHelper.updatePosition(x, y, mClockPointHelper.isInStartPointArea(x, y));
+                mClockPointHelper.updatePosition(x, y, mInStartPointArea);
                 ViewCompat.postInvalidateOnAnimation(this);
                 break;
             }
             case MotionEvent.ACTION_UP: {
-
                 break;
             }
             default:
@@ -256,7 +260,19 @@ public class AlarmClockView extends View {
         float startArc = mClockPointHelper.getStartArc();
         float endArc = mClockPointHelper.getEndArc();
         Log.d(TAG, "drawSlider: startArc: " + startArc + ", endArc: " + endArc);
-        canvas.drawArc(mSlideArcRect, startArc, endArc-startArc, false, mSliderPaint);
+        canvas.drawArc(mSlideArcRect, startArc-90, endArc-startArc, false, mSliderPaint);
+
+
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.RED);
+
+        canvas.drawCircle(mClockPointHelper.getStartPoint().x, mClockPointHelper.getStartPoint().y, 20, paint);
+        paint.setColor(Color.BLUE);
+
+        canvas.drawCircle(mClockPointHelper.getEndPoint().x, mClockPointHelper.getEndPoint().y, 20, paint);
     }
+
 
 }
