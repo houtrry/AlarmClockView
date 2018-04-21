@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mAlarmClockView = (AlarmClockView) findViewById(R.id.alarmClockView);
+        mAlarmClockView.setStartAndEndValue(30, 300);
         mAlarmClockView.setOnAlarmChangeListener(new OnAlarmChangeListener() {
             @Override
             public void onAlarmChange(int startTime, int endTime, int timeGap) {

@@ -21,7 +21,8 @@ import android.view.View;
  * @author: houtrry
  * @date: 2018/4/18 14:06
  * @version: $Rev$
- * @description: ${TODO}
+ * @description: 自定义闹钟的时间选择控件。计算部分的逻辑都放到ClockPointHelper.java来处理。
+ * 在AlarmClockView.java里面，我们只关心绘制。
  */
 
 public class AlarmClockView extends View {
@@ -156,8 +157,7 @@ public class AlarmClockView extends View {
         mPreDegree = 360f / mDialTexts.length;
 
         mClockPointHelper = new ClockPointHelper();
-        mClockPointHelper.init().setStartTime(30)
-                .setEndTime(300)
+        mClockPointHelper.init()
                 .setRadius(mDialPlateRadius + mSliderWidth * 0.5f)
                 .setMaxPointAreaRadius(mMaxPointAreaRadius);
     }
@@ -184,7 +184,7 @@ public class AlarmClockView extends View {
         mSliderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mSliderPaint.setStyle(Paint.Style.STROKE);
         mSliderPaint.setStrokeCap(Paint.Cap.ROUND);
-        mSliderPaint.setStrokeWidth(mSliderWidth + 2);
+        mSliderPaint.setStrokeWidth(mSliderWidth + 4);
 
         mDayNightPointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mDayNightPointPaint.setStyle(Paint.Style.FILL);

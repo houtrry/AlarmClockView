@@ -8,7 +8,7 @@ import android.util.Log;
  * @author: houtrry
  * @date: 2018/4/18 16:46
  * @version: $Rev$
- * @description: ${TODO}
+ * @description: 把关于计算的部分全部放到这里来处理。包括位置、时间、角度、距离的计算。
  */
 
 public class ClockPointHelper {
@@ -62,6 +62,9 @@ public class ClockPointHelper {
      * @return
      */
     public ClockPointHelper calculate(boolean calculateTimeByPoint, boolean updateStartPoint, boolean updateEndPoint) {
+        if (centerPoint == null) {
+            return this;
+        }
         if (calculateTimeByPoint) {
             //根据位置计算时间
             calculateTimeByPoint(updateStartPoint, updateEndPoint);
@@ -94,15 +97,12 @@ public class ClockPointHelper {
         if (isUpdateStart) {
             preStartPoint.set(startPoint.x, startPoint.y);
             startPoint.set(amendPoint(x, y));
-            Log.d(TAG, "calculateTimeByPoint: ===>>> 1");
             if (startPoint.y < centerPoint.y) {
                 Log.d(TAG, "calculateTimeByPoint: ===>>> 2, (" + startPoint.x + ", " + startPoint.y + "), (" + preStartPoint.x + ", " + preStartPoint.y + ")");
                 if (startPoint.x <= centerPoint.x && preStartPoint.x > centerPoint.x) {
-                    Log.d(TAG, "calculateTimeByPoint: ===>>> 3");
                     Log.d(TAG, "calculateTimeByPoint: 天阿鲁，起始点， 又减了一圈");
                     startCylinder--;
                 } else if (startPoint.x >= centerPoint.x && preStartPoint.x < centerPoint.x) {
-                    Log.d(TAG, "calculateTimeByPoint: ===>>> 4");
                     Log.d(TAG, "calculateTimeByPoint: 天阿鲁，起始点， 又加了一圈");
                     startCylinder++;
                 }
@@ -140,7 +140,6 @@ public class ClockPointHelper {
         if (distance != radius) {
             amendX = (x - centerPoint.x) * radius / distance + centerPoint.x;
             amendY = (y - centerPoint.y) * radius / distance + centerPoint.y;
-            Log.d(TAG, "amendPoint: (" + x + ", " + y + "), " + "(" + amendX + ", " + amendY + ")");
         } else {
             amendX = x;
             amendY = y;
@@ -176,7 +175,6 @@ public class ClockPointHelper {
     }
 
     private void calculateTimeGap() {
-
         timeGap = (int) (endTime - startTime) % (24 * 60);
         if (timeGap < 0) {
             timeGap += 24 * 60;
