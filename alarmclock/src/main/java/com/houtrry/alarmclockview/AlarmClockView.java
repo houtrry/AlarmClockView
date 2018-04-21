@@ -1,6 +1,7 @@
 package com.houtrry.alarmclockview;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -8,10 +9,11 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SweepGradient;
-import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
+import android.support.annotation.NonNull;
 import android.support.v4.view.ViewCompat;
+import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -50,44 +52,52 @@ public class AlarmClockView extends View {
 
 
     private int mDialLineColor = Color.parseColor("#ffffff");
-    private int mDialLineWidth = 3;
-    private int mDialLineHeight = 10;
-    private int mDialLineMargin = 10;
+    private float mDialLineWidth = 3;
+    private float mDialLineHeight = 10;
+    private float mDialLineMargin = 10;
     private Paint mDialLinePaint = null;
 
     private int mDialTextColor = Color.parseColor("#ffffff");
-    private int mDialTextSize = 24;
-    private int mDialTextMargin = 6;
+    private float mDialTextSize = 24;
+    private float mDialTextMargin = 6;
     private Paint mDialTextPaint = null;
 
     private int[] mSliderColors = {Color.parseColor("#1AEBF7"), Color.parseColor("#F7F095"), Color.parseColor("#1AEBF7")};
-    private float[] mSliderColorpositions = {0.0f, 0.5f, 1.0f};
+    private float[] mSliderColorPositions = {0.0f, 0.5f, 1.0f};
     private Paint mSliderPaint = null;
 
     private int[] mDialTexts = {12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
 
-    private float mStartDegree = 0;
-    private float mEndDegree = 0;
+    private boolean isShowStartDrawable = true;
+    private boolean isShowEndDrawable = true;
+    private BitmapDrawable mStartDrawable = null;
+    private BitmapDrawable mEndDrawable = null;
+    private float mStartBackgroundRadius = 0;
+    private float mEndBackgroundRadius = 0;
 
-    private PointF mStartPointF = new PointF();
-    private PointF mEndPointF = new PointF();
+    private int mStartDrawableBackgroundColor = Color.parseColor("#1E263D");
+    private int mEndDrawableBackgroundColor = Color.parseColor("#1E263D");
 
-    private Drawable mDayDrawable = null;
-    private Drawable mNightDrawable = null;
+    private Paint mDrawableBackgroundPaint = null;
 
-    private float mDayDrawableWidth = 0;
-    private float mNightDrawableWidth = 0;
-    private float mDayDrawableHeight = 0;
-    private float mNightDrawableHeight = 0;
-    private float mDayDrawableBackgroundColor = Color.parseColor("#1E263D");
-    private float mNightDrawableBackgroundColor = Color.parseColor("#1E263D");
 
+    private Paint mCenterTimeGapPaint = null;
+    private int mCenterTimeGapTextColor = Color.WHITE;
+    private float mCenterTimeGapTextSize = 60;
+    private boolean isShowCenterText = true;
+
+    private float mMaxPointAreaRadius = 30;
     private ClockPointHelper mClockPointHelper = null;
 
     private Paint mDayNightPointPaint = null;
     private boolean mNeedHandleEvent = false;
     private RectF mSlideArcRect = new RectF();
+    private boolean mInStartPointArea = false;
+    private boolean mInEndPointArea = false;
+    private PointF mTempPoint = null;
+    private String mGapTimeString = "";
+    private Rect mTextRect = new Rect();
 
     public AlarmClockView(Context context) {
         this(context, null);
@@ -109,7 +119,37 @@ public class AlarmClockView extends View {
     }
 
     private void initAttrs(Context context, AttributeSet attrs) {
+        final TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.AlarmClockView);
+        mSliderBackgroundColor = typedArray.getColor(R.styleable.AlarmClockView_slider_background_color, Color.parseColor("#1A2239"));
+        mSliderWidth = typedArray.getDimension(R.styleable.AlarmClockView_slider_width, 60);
+        mDialPlateBackgroundColor = typedArray.getColor(R.styleable.AlarmClockView_dial_plate_background_color, Color.parseColor("#2E364D"));
+        mDialPlateRadius = typedArray.getDimension(R.styleable.AlarmClockView_dial_plate_radius, 200);
 
+        mDialLineColor = typedArray.getColor(R.styleable.AlarmClockView_dial_line_color, Color.parseColor("#ffffff"));
+        mDialLineWidth = typedArray.getDimension(R.styleable.AlarmClockView_dial_line_width, 3);
+        mDialLineHeight = typedArray.getDimension(R.styleable.AlarmClockView_dial_line_height, 10);
+        mDialLineMargin = typedArray.getDimension(R.styleable.AlarmClockView_dial_line_margin, 10);
+
+        mDialTextColor = typedArray.getColor(R.styleable.AlarmClockView_dial_text_color, Color.parseColor("#ffffff"));
+        mDialTextSize = typedArray.getDimension(R.styleable.AlarmClockView_dial_text_size, 24);
+        mDialTextMargin = typedArray.getDimension(R.styleable.AlarmClockView_dial_text_margin, 6);
+
+        isShowCenterText = typedArray.getBoolean(R.styleable.AlarmClockView_is_show_center_text, true);
+        mCenterTimeGapTextColor = typedArray.getColor(R.styleable.AlarmClockView_center_time_gap_text_color, Color.parseColor("#ffffff"));
+        mCenterTimeGapTextSize = typedArray.getDimension(R.styleable.AlarmClockView_center_time_gap_text_size, 60);
+
+        isShowStartDrawable = typedArray.getBoolean(R.styleable.AlarmClockView_is_show_start_drawable, true);
+        mStartDrawable = (BitmapDrawable) typedArray.getDrawable(R.styleable.AlarmClockView_start_drawable);
+        mStartDrawableBackgroundColor = typedArray.getColor(R.styleable.AlarmClockView_start_drawable_background_color, Color.parseColor("#ffffff"));
+        mStartBackgroundRadius = typedArray.getDimension(R.styleable.AlarmClockView_start_background_radius, 0);
+
+        isShowEndDrawable = typedArray.getBoolean(R.styleable.AlarmClockView_is_show_end_drawable, true);
+        mEndDrawable = (BitmapDrawable) typedArray.getDrawable(R.styleable.AlarmClockView_end_drawable);
+        mEndDrawableBackgroundColor = typedArray.getColor(R.styleable.AlarmClockView_end_drawable_background_color, Color.parseColor("#ffffff"));
+        mEndBackgroundRadius = typedArray.getDimension(R.styleable.AlarmClockView_end_background_radius, 0);
+
+        mMaxPointAreaRadius = typedArray.getDimension(R.styleable.AlarmClockView_max_point_area_radius, 30);
+        typedArray.recycle();
     }
 
     private void initData() {
@@ -118,7 +158,8 @@ public class AlarmClockView extends View {
         mClockPointHelper = new ClockPointHelper();
         mClockPointHelper.init().setStartTime(30)
                 .setEndTime(300)
-                .setRadius(mDialPlateRadius + mSliderWidth * 0.5f);
+                .setRadius(mDialPlateRadius + mSliderWidth * 0.5f)
+                .setMaxPointAreaRadius(mMaxPointAreaRadius);
     }
 
     private void initPaint() {
@@ -148,11 +189,48 @@ public class AlarmClockView extends View {
         mDayNightPointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mDayNightPointPaint.setStyle(Paint.Style.FILL);
 
+        mCenterTimeGapPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mCenterTimeGapPaint.setTextSize(mCenterTimeGapTextSize);
+        mCenterTimeGapPaint.setColor(mCenterTimeGapTextColor);
+
+        mDrawableBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mDrawableBackgroundPaint.setStyle(Paint.Style.FILL_AND_STROKE);
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+//        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        setMeasuredDimension(measureWidth(widthMeasureSpec), measureHeight(heightMeasureSpec));
+    }
+
+    private int measureWidth(int widthMeasureSpec) {
+        int result = 0;
+        int mode = MeasureSpec.getMode(widthMeasureSpec);
+        int size = MeasureSpec.getSize(widthMeasureSpec);
+        if (mode == MeasureSpec.EXACTLY) {
+            result = size;
+        } else {
+            result = (int) Math.ceil(getPaddingLeft() + mDialPlateRadius * 2 + mSliderWidth * 2 + getPaddingRight());
+            if (mode == MeasureSpec.AT_MOST) {
+                result = Math.min(result, size);
+            }
+        }
+        return result;
+    }
+
+    private int measureHeight(int heightMeasureSpec) {
+        int result = 0;
+        int mode = MeasureSpec.getMode(heightMeasureSpec);
+        int size = MeasureSpec.getSize(heightMeasureSpec);
+        if (mode == MeasureSpec.EXACTLY) {
+            result = size;
+        } else {
+            result = (int) Math.ceil(getPaddingTop() + mDialPlateRadius * 2 + mSliderWidth * 2 + getPaddingBottom());
+            if (mode == MeasureSpec.AT_MOST) {
+                result = Math.min(result, size);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -161,13 +239,11 @@ public class AlarmClockView extends View {
         mWidth = w;
         mHeight = h;
         mCenterPoint.set(mWidth * 0.5f, mHeight * 0.5f);
-        mSliderPaint.setShader(new SweepGradient(mCenterPoint.x, mCenterPoint.y, mSliderColors, mSliderColorpositions));
+        mSliderPaint.setShader(new SweepGradient(mCenterPoint.x, mCenterPoint.y, mSliderColors, mSliderColorPositions));
         mClockPointHelper.setCenterPoint(mCenterPoint);
         mClockPointHelper.calculate(false, true, true);
     }
 
-    private boolean mInStartPointArea = false;
-    private boolean mInEndPointArea = false;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
@@ -177,7 +253,6 @@ public class AlarmClockView extends View {
                 mInStartPointArea = mClockPointHelper.isInStartPointArea(x, y);
                 mInEndPointArea = mClockPointHelper.isInEndPointArea(x, y);
                 mNeedHandleEvent = mInStartPointArea || mInEndPointArea;
-                Log.d(TAG, "onTouchEvent: x: "+x+", y: "+y+", ");
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
@@ -192,6 +267,8 @@ public class AlarmClockView extends View {
                 break;
         }
         return mNeedHandleEvent;
+        //如果不调用super.onTouchEvent(event)， 那么，这个View就不支持onClick 和 onLongClick
+//        return super.onTouchEvent(event) || mNeedHandleEvent;
     }
 
     @Override
@@ -199,9 +276,10 @@ public class AlarmClockView extends View {
         super.onDraw(canvas);
 
         drawBackground(canvas);
-        drawCurrentTime(canvas);
         drawDialPlate(canvas);
         drawSlider(canvas);
+        drawStartAndEndDrawable(canvas);
+        drawCenterGapTime(canvas);
     }
 
     /**
@@ -215,15 +293,6 @@ public class AlarmClockView extends View {
     }
 
     /**
-     * 绘制中心的当前选择时间
-     *
-     * @param canvas
-     */
-    private void drawCurrentTime(Canvas canvas) {
-
-    }
-
-    /**
      * 绘制刻度盘
      *
      * @param canvas
@@ -234,15 +303,9 @@ public class AlarmClockView extends View {
         Rect mDialTextRect = new Rect();
         for (int i = 0; i < mDialTexts.length; i++) {
             canvas.drawLine(mCenterPoint.x, mCenterPoint.y - mDialPlateRadius + mDialLineMargin, mCenterPoint.x, mCenterPoint.y - mDialPlateRadius + mDialLineMargin + mDialLineHeight, mDialLinePaint);
-
             text = String.valueOf(mDialTexts[i]);
-
             mDialTextPaint.getTextBounds(text, 0, text.length(), mDialTextRect);
-
             canvas.drawText(text, mCenterPoint.x - mDialTextPaint.measureText(text) * 0.5f, mCenterPoint.y - mDialPlateRadius + mDialLineMargin + mDialLineHeight + mDialTextMargin + mDialTextRect.height(), mDialTextPaint);
-
-            Log.d(TAG, "drawDialPlate: text : " + text + ", x: " + (mCenterPoint.x - mDialTextPaint.measureText(text) * 0.5f) + ", y: " + (mCenterPoint.y - mDialPlateRadius + mDialLineMargin + mDialLineHeight + mDialTextMargin + mDialTextRect.height()));
-
             canvas.rotate(mPreDegree, mCenterPoint.x, mCenterPoint.y);
         }
         canvas.restore();
@@ -256,23 +319,61 @@ public class AlarmClockView extends View {
     private void drawSlider(Canvas canvas) {
         mSlideArcRect.set(mCenterPoint.x - mDialPlateRadius - mSliderWidth * 0.5f, mCenterPoint.y - mDialPlateRadius - mSliderWidth * 0.5f,
                 mCenterPoint.x + mDialPlateRadius + mSliderWidth * 0.5f, mCenterPoint.y + mDialPlateRadius + mSliderWidth * 0.5f);
-
-        float startArc = mClockPointHelper.getStartArc();
-        float endArc = mClockPointHelper.getEndArc();
-        Log.d(TAG, "drawSlider: startArc: " + startArc + ", endArc: " + endArc);
-        canvas.drawArc(mSlideArcRect, startArc-90, endArc-startArc, false, mSliderPaint);
-
-
-
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.RED);
-
-        canvas.drawCircle(mClockPointHelper.getStartPoint().x, mClockPointHelper.getStartPoint().y, 20, paint);
-        paint.setColor(Color.BLUE);
-
-        canvas.drawCircle(mClockPointHelper.getEndPoint().x, mClockPointHelper.getEndPoint().y, 20, paint);
+        canvas.drawArc(mSlideArcRect, mClockPointHelper.getStartArc() - 90, (mClockPointHelper.getEndArc() - mClockPointHelper.getStartArc()) % 360, false, mSliderPaint);
     }
 
+    private void drawStartAndEndDrawable(Canvas canvas) {
+        if (isShowStartDrawable) {
+            mTempPoint = mClockPointHelper.getStartPoint();
 
+            if (mStartBackgroundRadius > 0) {
+                mDrawableBackgroundPaint.setColor(mStartDrawableBackgroundColor);
+                canvas.drawCircle(mTempPoint.x, mTempPoint.y, mStartBackgroundRadius, mDrawableBackgroundPaint);
+            }
+            if (mStartDrawable != null) {
+                mStartDrawable.setBounds((int) (mTempPoint.x - mStartDrawable.getIntrinsicWidth() * 0.5f), (int) (mTempPoint.y - mStartDrawable.getIntrinsicHeight() * 0.5f),
+                        (int) (mTempPoint.x + mStartDrawable.getIntrinsicWidth() * 0.5f), (int) (mTempPoint.y + mStartDrawable.getIntrinsicHeight() * 0.5f));
+                mStartDrawable.draw(canvas);
+            }
+        }
+        if (isShowEndDrawable) {
+            mTempPoint = mClockPointHelper.getEndPoint();
+            if (mEndBackgroundRadius > 0) {
+                mDrawableBackgroundPaint.setColor(mEndDrawableBackgroundColor);
+                canvas.drawCircle(mTempPoint.x, mTempPoint.y, mEndBackgroundRadius, mDrawableBackgroundPaint);
+            }
+            if (mEndDrawable != null) {
+                mEndDrawable.setBounds((int) (mTempPoint.x - mEndDrawable.getIntrinsicWidth() * 0.5f), (int) (mTempPoint.y - mEndDrawable.getIntrinsicHeight() * 0.5f),
+                        (int) (mTempPoint.x + mEndDrawable.getIntrinsicWidth() * 0.5f), (int) (mTempPoint.y + mEndDrawable.getIntrinsicHeight() * 0.5f));
+                mEndDrawable.draw(canvas);
+            }
+        }
+    }
+
+    private void drawCenterGapTime(Canvas canvas) {
+        if (!isShowCenterText) {
+            return;
+        }
+        mGapTimeString = mClockPointHelper.getTimeGapString();
+        if (TextUtils.isEmpty(mGapTimeString)) {
+            return;
+        }
+        mCenterTimeGapPaint.getTextBounds(mGapTimeString, 0, mGapTimeString.length(), mTextRect);
+        canvas.drawText(mGapTimeString, mCenterPoint.x - mCenterTimeGapPaint.measureText(mGapTimeString) * 0.5f, mCenterPoint.y + mTextRect.height() * 0.5f, mCenterTimeGapPaint);
+    }
+
+    public void setOnAlarmChangeListener(@NonNull OnAlarmChangeListener onAlarmChangeListener) {
+        if (mClockPointHelper != null) {
+            mClockPointHelper.setOnAlarmChangeListener(onAlarmChangeListener);
+        }
+    }
+
+    public void setStartAndEndValue(float startTime, float endTime) {
+        if (mClockPointHelper != null) {
+            mClockPointHelper.setStartTime(startTime)
+                    .setEndTime(endTime);
+            mClockPointHelper.calculate(false, true, true);
+            ViewCompat.postInvalidateOnAnimation(this);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.houtrry.alarmclockview;
 
 import android.graphics.PointF;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 /**
@@ -16,10 +17,10 @@ public class ClockPointHelper {
 
     private float radius;
 
-    //分钟数
-    private int durationTime;
     private float startTime;
     private float endTime;
+
+    private int timeGap;
 
     private PointF startPoint;
     private PointF endPoint;
@@ -29,25 +30,14 @@ public class ClockPointHelper {
 
     private PointF centerPoint;
     private OnAlarmChangeListener onAlarmChangeListener;
-    private float calculatePositionByTimeDegree;
     private float maxPointAreaRadius = 30;
 
+    private int startCylinder = 0;
+    private int endCylinder = 0;
+    private PointF preStartPoint = null;
+    private PointF preEndPoint = null;
+
     public ClockPointHelper() {
-    }
-
-    public ClockPointHelper(PointF centerPoint, float radius, float startTime, float endTime) {
-        this.centerPoint = centerPoint;
-        this.radius = radius;
-        this.startTime = startTime;
-        this.endTime = endTime;
-    }
-
-    public ClockPointHelper(PointF centerPoint, float radius, float startTime, float endTime, OnAlarmChangeListener onAlarmChangeListener) {
-        this.centerPoint = centerPoint;
-        this.radius = radius;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.onAlarmChangeListener = onAlarmChangeListener;
     }
 
     public static void main(String... args) {
@@ -61,6 +51,8 @@ public class ClockPointHelper {
     public ClockPointHelper init() {
         startPoint = new PointF();
         endPoint = new PointF();
+        preStartPoint = new PointF();
+        preEndPoint = new PointF();
         return this;
     }
 
@@ -77,10 +69,19 @@ public class ClockPointHelper {
             //根据时间计算位置
             calculatePointByTime(updateStartPoint, updateEndPoint);
         }
+        calculateTimeGap();
         if (this.onAlarmChangeListener != null) {
-            this.onAlarmChangeListener.onAlarmChange(startPoint, endPoint, getDurationTime());
+            this.onAlarmChangeListener.onAlarmChange(formatTime(startTime), formatTime(endTime), timeGap);
         }
         return this;
+    }
+
+    private int formatTime(float time) {
+        time = time % (24 * 60);
+        if (time < 0) {
+            time += (24 * 60);
+        }
+        return (int) time;
     }
 
     /**
@@ -91,9 +92,34 @@ public class ClockPointHelper {
      */
     public ClockPointHelper updatePosition(float x, float y, boolean isUpdateStart) {
         if (isUpdateStart) {
+            preStartPoint.set(startPoint.x, startPoint.y);
             startPoint.set(amendPoint(x, y));
+            Log.d(TAG, "calculateTimeByPoint: ===>>> 1");
+            if (startPoint.y < centerPoint.y) {
+                Log.d(TAG, "calculateTimeByPoint: ===>>> 2, (" + startPoint.x + ", " + startPoint.y + "), (" + preStartPoint.x + ", " + preStartPoint.y + ")");
+                if (startPoint.x <= centerPoint.x && preStartPoint.x > centerPoint.x) {
+                    Log.d(TAG, "calculateTimeByPoint: ===>>> 3");
+                    Log.d(TAG, "calculateTimeByPoint: 天阿鲁，起始点， 又减了一圈");
+                    startCylinder--;
+                } else if (startPoint.x >= centerPoint.x && preStartPoint.x < centerPoint.x) {
+                    Log.d(TAG, "calculateTimeByPoint: ===>>> 4");
+                    Log.d(TAG, "calculateTimeByPoint: 天阿鲁，起始点， 又加了一圈");
+                    startCylinder++;
+                }
+            }
         } else {
+            preEndPoint.set(endPoint.x, endPoint.y);
             endPoint.set(amendPoint(x, y));
+
+            if (endPoint.y < centerPoint.y) {
+                if (endPoint.x <= centerPoint.x && preEndPoint.x > centerPoint.x) {
+                    Log.d(TAG, "calculateTimeByPoint: 天阿鲁，结束点， 又减了一圈");
+                    endCylinder--;
+                } else if (endPoint.x >= centerPoint.x && preEndPoint.x < centerPoint.x) {
+                    Log.d(TAG, "calculateTimeByPoint: 天阿鲁，结束点， 又加了一圈");
+                    endCylinder++;
+                }
+            }
         }
         calculate(true, isUpdateStart, !isUpdateStart);
         Log.d(TAG, "updatePosition: " + (calculateDistance(startPoint.x, startPoint.y, centerPoint)) + ", " + (calculateDistance(endPoint.x, endPoint.y, centerPoint)) + ", " + radius);
@@ -130,44 +156,33 @@ public class ClockPointHelper {
         return endPoint;
     }
 
-    public int getDurationTime() {
-        return (int) (endTime - startTime + 0.5f);
-    }
-
-    public void setOnAlarmChangeListener(OnAlarmChangeListener onAlarmChangeListener) {
+    public void setOnAlarmChangeListener(@NonNull OnAlarmChangeListener onAlarmChangeListener) {
         this.onAlarmChangeListener = onAlarmChangeListener;
     }
-
-    private float preStartArc = 0;
-    private float preEndArc = 0;
-    private float currentArc = 0;
 
     /**
      * 根据当前起始位置计算 当前起始时间
      */
     private void calculateTimeByPoint(boolean updateStartPoint, boolean updateEndPoint) {
         if (updateStartPoint) {
-            Log.d(TAG, "calculateTimeByPoint: (" + startPoint.x + ", " + startPoint.y + "), startArc: " + startArc + ", " + startTime);
-            preStartArc = startArc;
-            startArc = calculateTimeByPoint(startPoint);
-            if (preStartArc > 350 && startArc < 10) {
-                startArc = startArc + 360;
-            } else if (preStartArc < 10 && startArc >350) {
-                startArc = startArc - 360;
-            }
-            startTime = startArc / 360 * 60 * 12;
-            Log.d(TAG, "calculateTimeByPoint: (" + startPoint.x + ", " + startPoint.y + "), startArc: " + startArc + ", " + startTime);
+            startArc = calculateTimeByPoint(startPoint) + startCylinder * 360;
+            startTime = startArc % 720 / 360 * 60 * 12;
+            Log.d(TAG, "===>>>calculateTimeByPoint: startArc: " + startArc + ", startTime: " + startTime + " = " + (int) startTime / 60 + ":" + (int) startTime % 60 + ", startCylinder: " + startCylinder);
         }
         if (updateEndPoint) {
-            preEndArc = endArc;
-            endArc = calculateTimeByPoint(endPoint);
-            if (preEndArc > 350 && endArc < 10) {
-                endArc = endArc + 360;
-            } else if (preEndArc < 10 && endArc >350) {
-                endArc = endArc - 360;
-            }
-            endTime = endArc / 360 * 60 * 12;
+            endArc = calculateTimeByPoint(endPoint) + endCylinder * 360;
+            endTime = endArc % 720 / 360 * 60 * 12;
         }
+    }
+
+    private void calculateTimeGap() {
+
+        timeGap = (int) (endTime - startTime) % (24 * 60);
+        if (timeGap < 0) {
+            timeGap += 24 * 60;
+        }
+        Log.d(TAG, "===>>>calculateTimeByPoint: startTime: " + startTime + ", endTime: " + endTime + ", timeGap: " + timeGap + " = (" + (timeGap / 60) + ":" + (timeGap % 60) + ")");
+        Log.d(TAG, "calculateTimeByPoint: startArc: " + startArc + ", endArc: " + endArc + ", startCylinder: " + startCylinder + ", endCylinder: " + endCylinder);
     }
 
     /**
@@ -176,10 +191,12 @@ public class ClockPointHelper {
     private void calculatePointByTime(boolean updateStartPoint, boolean updateEndPoint) {
         if (updateStartPoint) {
             Log.d(TAG, "calculatePointByTime: (" + startPoint.x + ", " + startPoint.y + ")");
+            startCylinder = (int) Math.floor(startTime / (12 * 60));
             startArc = calculatePositionByTime(startPoint, startTime);
             Log.d(TAG, "calculatePointByTime: (" + startPoint.x + ", " + startPoint.y + ")");
         }
         if (updateEndPoint) {
+            endCylinder = (int) Math.floor(endTime / (12 * 60));
             endArc = calculatePositionByTime(endPoint, endTime);
         }
         Log.d(TAG, "calculatePointByTime: startTime: " + startTime + ", startArc: " + startArc + ", endTime: " + endTime + ", endArc: " + endArc);
@@ -258,4 +275,25 @@ public class ClockPointHelper {
     private float calculateDistance(PointF startPoint, PointF endPoint) {
         return (float) Math.sqrt(Math.pow(startPoint.x - endPoint.x, 2) + Math.pow(startPoint.y - endPoint.y, 2));
     }
+
+    public int getTimeGap() {
+        return timeGap;
+    }
+
+    public String getTimeGapString() {
+        return formatTimeString(timeGap / 60) + ": " + formatTimeString(timeGap % 60);
+    }
+
+    private String formatTimeString(int value) {
+        if (value < 10) {
+            return "0" + value;
+        }
+        return String.valueOf(value);
+    }
+
+    public ClockPointHelper setMaxPointAreaRadius(float maxPointAreaRadius) {
+        this.maxPointAreaRadius = maxPointAreaRadius;
+        return this;
+    }
+
 }
