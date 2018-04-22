@@ -6,9 +6,9 @@ import android.util.Log;
 
 /**
  * @author: houtrry
- * @date: 2018/4/18 16:46
+ * date: 2018/4/18 16:46
  * @version: $Rev$
- * @description: 把关于计算的部分全部放到这里来处理。包括位置、时间、角度、距离的计算。
+ * description: 把关于计算的部分全部放到这里来处理。包括位置、时间、角度、距离的计算。
  */
 
 public class ClockPointHelper {
@@ -59,7 +59,9 @@ public class ClockPointHelper {
     /**
      * @param calculateTimeByPoint true: 根据位置计算时间；
      *                             false：根据时间计算位置；
-     * @return
+     * @param updateStartPoint     是否更新起始位置
+     * @param updateEndPoint       是否更新结束位置
+     * @return 返回当前对象
      */
     public ClockPointHelper calculate(boolean calculateTimeByPoint, boolean updateStartPoint, boolean updateEndPoint) {
         if (centerPoint == null) {
@@ -88,10 +90,10 @@ public class ClockPointHelper {
     }
 
     /**
-     * @param x
-     * @param y
+     * @param x             手指点击移动的当前位置的x坐标
+     * @param y             手指点击移动的当前位置的y坐标
      * @param isUpdateStart true:更新start位置；false：更新end位置；
-     * @return
+     * @return 返回当前对象
      */
     public ClockPointHelper updatePosition(float x, float y, boolean isUpdateStart) {
         if (isUpdateStart) {
@@ -129,9 +131,9 @@ public class ClockPointHelper {
     /**
      * 修正位置， 给的x、y很有可能不是环上的点，修正一下，取环中心线上的点
      *
-     * @param x
-     * @param y
-     * @return
+     * @param x x坐标
+     * @param y y坐标
+     * @return 返回当前对象
      */
     private PointF amendPoint(float x, float y) {
         float amendX;
@@ -161,6 +163,9 @@ public class ClockPointHelper {
 
     /**
      * 根据当前起始位置计算 当前起始时间
+     *
+     * @param updateStartPoint 是否更新起始位置
+     * @param updateEndPoint   是否更新结束位置
      */
     private void calculateTimeByPoint(boolean updateStartPoint, boolean updateEndPoint) {
         if (updateStartPoint) {
@@ -185,6 +190,9 @@ public class ClockPointHelper {
 
     /**
      * 根据当前起始时间计算当前的起始位置
+     *
+     * @param updateStartPoint 是否更新起始位置
+     * @param updateEndPoint   是否更新结束位置
      */
     private void calculatePointByTime(boolean updateStartPoint, boolean updateEndPoint) {
         if (updateStartPoint) {

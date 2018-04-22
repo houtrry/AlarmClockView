@@ -11,7 +11,6 @@ import android.graphics.RectF;
 import android.graphics.SweepGradient;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.NonNull;
-import android.support.v4.view.ViewCompat;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -19,9 +18,9 @@ import android.view.View;
 
 /**
  * @author: houtrry
- * @date: 2018/4/18 14:06
+ * date: 2018/4/18 14:06
  * @version: $Rev$
- * @description: 自定义闹钟的时间选择控件。计算部分的逻辑都放到ClockPointHelper.java来处理。
+ * description: 自定义闹钟的时间选择控件。计算部分的逻辑都放到ClockPointHelper.java来处理。
  * 在AlarmClockView.java里面，我们只关心绘制。
  */
 
@@ -257,7 +256,8 @@ public class AlarmClockView extends View {
             }
             case MotionEvent.ACTION_MOVE: {
                 mClockPointHelper.updatePosition(x, y, mInStartPointArea);
-                ViewCompat.postInvalidateOnAnimation(this);
+//                ViewCompat.postInvalidateOnAnimation(this);
+                postInvalidate();
                 break;
             }
             case MotionEvent.ACTION_UP: {
@@ -274,7 +274,6 @@ public class AlarmClockView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         drawBackground(canvas);
         drawDialPlate(canvas);
         drawSlider(canvas);
@@ -285,7 +284,7 @@ public class AlarmClockView extends View {
     /**
      * 绘制背景
      *
-     * @param canvas
+     * @param canvas 画布
      */
     private void drawBackground(Canvas canvas) {
         canvas.drawCircle(mCenterPoint.x, mCenterPoint.y, mDialPlateRadius, mDialPlateBackgroundPaint);
@@ -295,7 +294,7 @@ public class AlarmClockView extends View {
     /**
      * 绘制刻度盘
      *
-     * @param canvas
+     * @param canvas 画布
      */
     private void drawDialPlate(Canvas canvas) {
         canvas.save();
@@ -314,7 +313,7 @@ public class AlarmClockView extends View {
     /**
      * 绘制可以滑动的部分
      *
-     * @param canvas
+     * @param canvas 画布
      */
     private void drawSlider(Canvas canvas) {
         mSlideArcRect.set(mCenterPoint.x - mDialPlateRadius - mSliderWidth * 0.5f, mCenterPoint.y - mDialPlateRadius - mSliderWidth * 0.5f,
@@ -373,7 +372,8 @@ public class AlarmClockView extends View {
             mClockPointHelper.setStartTime(startTime)
                     .setEndTime(endTime);
             mClockPointHelper.calculate(false, true, true);
-            ViewCompat.postInvalidateOnAnimation(this);
+//            ViewCompat.postInvalidateOnAnimation(this);
+            postInvalidate();
         }
     }
 }

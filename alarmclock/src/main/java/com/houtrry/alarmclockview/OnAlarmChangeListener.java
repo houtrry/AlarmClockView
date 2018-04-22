@@ -2,9 +2,9 @@ package com.houtrry.alarmclockview;
 
 /**
  * @author: houtrry
- * @date: 2018/4/19 10:11
+ * date: 2018/4/19 10:11
  * @version: $Rev$
- * @description: ${TODO}
+ * description:
  */
 
 public interface OnAlarmChangeListener {
