@@ -10,7 +10,18 @@ compile 'com.houtrry.alarmclockview:AlarmClockView:1.0.0'
 ```
 
 
+可以参考示例layout/activity_main.xml，如下
 ```
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:acv="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.houtrry.alarmclockviewsamples.MainActivity">
+
     <com.houtrry.alarmclockview.AlarmClockView
         android:id="@+id/alarmClockView"
         android:layout_width="200dp"
@@ -51,6 +62,8 @@ compile 'com.houtrry.alarmclockview:AlarmClockView:1.0.0'
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
+
+</android.support.constraint.ConstraintLayout>
 ```
 
 ```
